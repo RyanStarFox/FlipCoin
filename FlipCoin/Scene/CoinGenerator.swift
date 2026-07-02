@@ -2,8 +2,8 @@ import SceneKit
 
 struct CoinGenerator {
 
-    static let coinRadius: CGFloat = 2.0
-    static let coinHeight: CGFloat = 0.20
+    static let coinRadius: CGFloat = 1.3
+    static let coinHeight: CGFloat = 0.13
     static let coinSegments: Int = 96
 
     static func generate(skin: CoinSkin) -> SCNNode {
