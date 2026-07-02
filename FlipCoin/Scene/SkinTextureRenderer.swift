@@ -57,36 +57,15 @@ struct SkinTextureRenderer {
         let center = CGPoint(x: bounds.midX, y: bounds.midY)
         let radius = min(size.width, size.height) / 2
 
-        // Silver coin face background with subtle radial gradient
-        let colors = [
-            CGColor(gray: 0.92, alpha: 1.0),
-            CGColor(gray: 0.78, alpha: 1.0)
-        ] as CFArray
-        let locations: [CGFloat] = [0.0, 1.0]
-        if let gradient = CGGradient(
-            colorsSpace: CGColorSpaceCreateDeviceGray(),
-            colors: colors,
-            locations: locations
-        ) {
-            ctx.drawRadialGradient(
-                gradient,
-                startCenter: center, startRadius: radius * 0.1,
-                endCenter: center, endRadius: radius,
-                options: [.drawsAfterEndLocation]
-            )
-        }
+        // Uniform silver disc — no gradient, no inner ring.
+        // A clean, flat face so the coin reads clearly at any angle.
+        ctx.setFillColor(CGColor(gray: 0.88, alpha: 1.0))
+        ctx.fillEllipse(in: bounds)
 
-        // Outer rim highlight
-        ctx.setStrokeColor(CGColor(gray: 0.95, alpha: 0.6))
-        ctx.setLineWidth(radius * 0.04)
-        ctx.addArc(center: center, radius: radius * 0.94,
-                    startAngle: 0, endAngle: .pi * 2, clockwise: false)
-        ctx.strokePath()
-
-        // Inner decorative ring
-        ctx.setStrokeColor(CGColor(gray: 0.7, alpha: 0.4))
-        ctx.setLineWidth(radius * 0.015)
-        ctx.addArc(center: center, radius: radius * 0.75,
+        // Subtle outer rim — thin bright ring for coin edge definition
+        ctx.setStrokeColor(CGColor(gray: 0.94, alpha: 0.8))
+        ctx.setLineWidth(radius * 0.025)
+        ctx.addArc(center: center, radius: radius * 0.97,
                     startAngle: 0, endAngle: .pi * 2, clockwise: false)
         ctx.strokePath()
 
@@ -96,14 +75,13 @@ struct SkinTextureRenderer {
 
         let fontSize: CGFloat
         if text.count <= 2 {
-            fontSize = radius * 0.55
+            fontSize = radius * 0.50
         } else if text.count <= 3 {
-            fontSize = radius * 0.4
+            fontSize = radius * 0.36
         } else {
-            fontSize = radius * 0.3
+            fontSize = radius * 0.28
         }
 
-        // Use platform-appropriate font
         #if os(macOS)
         let font = NSFont.systemFont(ofSize: fontSize, weight: .bold)
         #else
@@ -112,7 +90,7 @@ struct SkinTextureRenderer {
 
         let attrs: [NSAttributedString.Key: Any] = [
             .font: font,
-            .foregroundColor: PlatformColor(white: 0.35, alpha: 0.9),
+            .foregroundColor: PlatformColor(white: 0.25, alpha: 0.85),
             .paragraphStyle: paragraphStyle
         ]
 

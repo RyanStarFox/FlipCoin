@@ -90,8 +90,8 @@ struct ContentView: View {
                 .padding(.bottom, 32)
             }
         }
-        .frame(minWidth: 360, idealWidth: 360, maxWidth: .infinity,
-               minHeight: 560, idealHeight: 560, maxHeight: .infinity)
+        .frame(minWidth: 340, idealWidth: 340,
+               minHeight: 560, idealHeight: 560)
         .onAppear {
             coinScene.updateSkin(skin)
         }

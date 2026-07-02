@@ -2,102 +2,80 @@ import SceneKit
 
 extension SCNNode {
 
-    /// Execute the full coin flip animation with realistic physics.
+    /// Execute a physics-driven coin flip with parabolic arcs and damped bouncing.
+    /// Uses kinematic equations:  y(t) = v₀·t − ½·g·t²  per bounce segment.
+    ///
     /// - Parameters:
-    ///   - result: Which face (a or b) should land facing the camera.
-    ///   - completion: Called when the entire animation sequence finishes.
+    ///   - result: Which face lands facing the camera.
+    ///   - completion: Called when the full sequence finishes.
     func flipAnimation(
         result: Face,
         completion: @escaping () -> Void
     ) {
-        // The coin's rest orientation has face A pointing toward +Z (camera).
-        // eulerAngles.x = π/2 means top face (material[0]) faces the camera.
-        let restAngle: CGFloat = .pi / 2
-        let totalSpins: CGFloat = 8.0
-        let riseHeight: CGFloat = 5.0
+        // ---- Physics constants ----
+        let g: CGFloat = 18.0           // gravity (units/s²)
+        let v0: CGFloat = 11.0          // initial upward velocity
+        let restitution: CGFloat = 0.38 // bounce energy retention
 
-        // Face A = restAngle, Face B = restAngle + π
+        // ---- Precompute bounce segments ----
+        // Each segment is (startTime, startVelocity) where startVelocity is upward.
+        struct Bounce {
+            let t0: CGFloat    // segment start time
+            let v0: CGFloat    // upward velocity at t0
+            let t1: CGFloat    // segment end time (when y returns to 0)
+        }
+
+        var bounces: [Bounce] = []
+        var t = CGFloat(0)
+        var v = v0
+        for _ in 0..<5 {
+            let duration = 2 * v / g
+            bounces.append(Bounce(t0: t, v0: v, t1: t + duration))
+            t += duration
+            v *= restitution
+            if v < 0.3 { break }  // bounce too small to matter
+        }
+
+        // ---- Spin ----
+        let restAngle: CGFloat = .pi / 2         // face A points at camera
+        let totalSpins: CGFloat = 8.0
         let baseAngle: CGFloat = (result == .a) ? 0 : .pi
         let finalAngle = restAngle + totalSpins * 2 * .pi + baseAngle
 
-        // ---- Phase 1: Launch (0 → 0.8s) ----
-        // Coin shoots upward with easeOut — fast start, decelerating near apex.
-        let launchDuration: TimeInterval = 0.8
+        // Spin linearly over the active bouncing duration
+        let spinEndTime = bounces.last?.t1 ?? 2.0
 
-        let riseMove = SCNAction.moveBy(x: 0, y: riseHeight, z: 0, duration: launchDuration)
-        riseMove.timingMode = .easeOut
+        // ---- Animation ----
+        let totalDuration: TimeInterval = TimeInterval(spinEndTime + 0.6)
 
-        let riseSpin = SCNAction.rotateTo(
-            x: finalAngle * 0.70, y: 0, z: 0,
-            duration: launchDuration,
-            usesShortestUnitArc: false
-        )
-        riseSpin.timingMode = .easeOut
+        let action = SCNAction.customAction(duration: totalDuration) { node, elapsed in
+            let ct = CGFloat(elapsed)
 
-        // ---- Phase 2: Apex float (0.8 → 1.2s) ----
-        let apexDuration: TimeInterval = 0.4
+            // Vertical position: find which bounce segment we're in
+            var y: CGFloat = 0
+            for b in bounces {
+                if ct >= b.t0 && ct < b.t1 {
+                    let dt = ct - b.t0
+                    y = b.v0 * dt - 0.5 * g * dt * dt
+                    break
+                }
+            }
+            // After all bounces settled: y stays at 0
 
-        let apexFloat = SCNAction.moveBy(x: 0, y: -0.3, z: 0, duration: apexDuration)
-        apexFloat.timingMode = .easeInEaseOut
+            // Spin: linear interpolation, clamping at end
+            let spinProgress = min(ct / spinEndTime, 1.0)
+            let spinX = restAngle + (finalAngle - restAngle) * spinProgress
 
-        let apexSpin = SCNAction.rotateTo(
-            x: finalAngle * 0.88, y: 0, z: 0,
-            duration: apexDuration,
-            usesShortestUnitArc: false
-        )
-        apexSpin.timingMode = .easeInEaseOut
+            node.position = SCNVector3(0, y, 0)
+            node.eulerAngles = SCNVector3(Float(spinX), 0, 0)
+        }
 
-        // ---- Phase 3: Fall (1.2 → 1.9s) ----
-        // Gravity accelerates coin downward.
-        let fallDuration: TimeInterval = 0.7
-
-        let fallMove = SCNAction.moveBy(
-            x: 0, y: -(riseHeight - 0.7), z: 0,
-            duration: fallDuration
-        )
-        fallMove.timingMode = .easeIn
-
-        let fallSpin = SCNAction.rotateTo(
-            x: finalAngle, y: 0, z: 0,
-            duration: fallDuration + 0.35,
-            usesShortestUnitArc: false
-        )
-        fallSpin.timingMode = .easeIn
-
-        // ---- Phase 4: Damped bounce settle (1.9 → 3.0s) ----
-        // Three bounces with decaying amplitude — realistic coin-on-table feel.
-        let bounce1 = SCNAction.sequence([
-            SCNAction.moveBy(x: 0, y: 1.8, z: 0, duration: 0.14),
-            SCNAction.moveBy(x: 0, y: -1.8, z: 0, duration: 0.18)
-        ])
-
-        let bounce2 = SCNAction.sequence([
-            SCNAction.moveBy(x: 0, y: 0.7, z: 0, duration: 0.10),
-            SCNAction.moveBy(x: 0, y: -0.7, z: 0, duration: 0.13)
-        ])
-
-        let bounce3 = SCNAction.sequence([
-            SCNAction.moveBy(x: 0, y: 0.20, z: 0, duration: 0.06),
-            SCNAction.moveBy(x: 0, y: -0.20, z: 0, duration: 0.09)
-        ])
-
-        let settle = SCNAction.moveBy(x: 0, y: 0, z: 0, duration: 0.05)
-
-        // ---- Compose full sequence ----
-        let fullSequence = SCNAction.sequence([
-            SCNAction.group([riseMove, riseSpin]),
-            SCNAction.group([apexFloat, apexSpin]),
-            SCNAction.group([fallMove, fallSpin]),
-            bounce1,
-            bounce2,
-            bounce3,
-            settle,
-            SCNAction.run { _ in completion() }
-        ])
-
-        // Reset position and orientation before animating.
+        // ---- Run ----
         self.position = SCNVector3(0, 0, 0)
         self.eulerAngles = SCNVector3(Float(restAngle), 0, 0)
-        self.runAction(fullSequence)
+        self.runAction(SCNAction.sequence([
+            action,
+            SCNAction.run { _ in completion() }
+        ]))
     }
 }

@@ -30,16 +30,16 @@ class CoinScene {
         cameraNode.camera?.fieldOfView = 45
         cameraNode.camera?.zNear = 0.1
         cameraNode.camera?.zFar = 100
-        // 3/4 angled perspective — like looking down at a coin on a table.
-        // Camera is elevated and in front, tilted down toward the scene origin.
-        cameraNode.position = SCNVector3(0, 5, 7)
-        cameraNode.look(at: SCNVector3(0, -0.8, 0))
+        // ~34° downward tilt — like glancing at a coin on the table in front of you.
+        // Not overhead, not eye-level. A comfortable 3/4 desk perspective.
+        cameraNode.position = SCNVector3(0, 3.0, 6.5)
+        cameraNode.look(at: SCNVector3(0, -0.5, 0))
         cameraNode.name = "camera"
         scene.rootNode.addChildNode(cameraNode)
     }
 
     private func setupLights() {
-        // Ambient — prevents pure-black shadows
+        // Ambient — soft fill so nothing goes pure black
         let ambient = SCNNode()
         ambient.light = SCNLight()
         ambient.light!.type = .ambient
@@ -47,18 +47,18 @@ class CoinScene {
         ambient.light!.color = PlatformColor(white: 0.55, alpha: 1.0)
         scene.rootNode.addChildNode(ambient)
 
-        // Key light — from upper-right, creates metallic specular response
+        // Key — from upper-right, drives PBR specular on the silver coin
         let key = SCNNode()
         key.light = SCNLight()
         key.light!.type = .directional
-        key.light!.intensity = 900
+        key.light!.intensity = 800
         key.light!.color = PlatformColor(white: 0.95, alpha: 1.0)
         key.position = SCNVector3(5, 10, 4)
         key.look(at: SCNVector3(0, 0, 0))
         key.light!.castsShadow = false
         scene.rootNode.addChildNode(key)
 
-        // Subtle fill — from below-front, softens coin underside
+        // Soft fill from front-left
         let fill = SCNNode()
         fill.light = SCNLight()
         fill.light!.type = .directional
@@ -69,26 +69,23 @@ class CoinScene {
         scene.rootNode.addChildNode(fill)
     }
 
-    // MARK: - Reflective floor ("地平线" with coin reflection)
+    // MARK: - Reflective floor (light tabletop)
 
     private func setupFloor() {
-        // SCNFloor is an infinite plane that SceneKit can render with
-        // screen-space reflections when paired with a PBR material.
         let floor = SCNFloor()
-        floor.reflectivity = 0.35           // subtle mirror — enough to see the coin
-        floor.reflectionFalloffEnd = 12.0   // reflections fade into the distance
+        floor.reflectivity = 0.22           // subtle — clear enough to see the coin mirrored
+        floor.reflectionFalloffEnd = 10.0
         floor.reflectionResolutionScaleFactor = 1.0
 
-        let floorMaterial = SCNMaterial()
-        floorMaterial.lightingModel = .physicallyBased
-        // Dark polished tabletop — the darkness makes the silver reflection pop
-        floorMaterial.diffuse.contents = PlatformColor(white: 0.12, alpha: 1.0)
-        floorMaterial.metalness.contents = 0.5
-        floorMaterial.roughness.contents = 0.15
-        floor.materials = [floorMaterial]
+        let mat = SCNMaterial()
+        mat.lightingModel = .physicallyBased
+        // Light desk surface — white-ish with a hint of warmth
+        mat.diffuse.contents = PlatformColor(white: 0.84, alpha: 1.0)
+        mat.metalness.contents = 0.15
+        mat.roughness.contents = 0.35
+        floor.materials = [mat]
 
         let floorNode = SCNNode(geometry: floor)
-        // Position well below the coin so the bounce trajectory is visible
         floorNode.position = SCNVector3(0, -2.5, 0)
         floorNode.name = "floor"
         scene.rootNode.addChildNode(floorNode)
