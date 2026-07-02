@@ -2,7 +2,7 @@ import SceneKit
 
 extension SCNNode {
 
-    /// Execute the full three-phase coin flip animation.
+    /// Execute the full coin flip animation with realistic physics.
     /// - Parameters:
     ///   - result: Which face (a or b) should land facing the camera.
     ///   - particleManager: Coordinates particle effects with animation phases.
@@ -12,58 +12,80 @@ extension SCNNode {
         particleManager: ParticleManager,
         completion: @escaping () -> Void
     ) {
-        let riseHeight: CGFloat = 8.0
+        // The coin's rest orientation has face A pointing toward +Z (camera).
+        // eulerAngles.x = π/2 means top face (material[0]) faces the camera.
+        let restAngle: CGFloat = .pi / 2
         let totalSpins: CGFloat = 8.0
 
-        // X-axis rotation determines which face shows.
-        // Face A at 0 (or 2π), Face B at π.
+        // Face A = restAngle, Face B = restAngle + π
         let baseAngle: CGFloat = (result == .a) ? 0 : .pi
-        let finalAngle = totalSpins * 2 * .pi + baseAngle
+        let finalAngle = restAngle + totalSpins * 2 * .pi + baseAngle
 
-        // ---- Phase 1: Launch (0 → 1.2s) ----
-        // Coin rises while spinning rapidly, particles trail from edge.
-        let riseMove = SCNAction.moveBy(x: 0, y: riseHeight, z: 0, duration: 1.2)
+        // ---- Phase 1: Launch (0 → 0.9s) ----
+        // Coin shoots upward with easeOut — fast start, decelerating near apex.
+        // This matches real physics: high initial velocity, gravity slows it down.
+        let riseHeight: CGFloat = 6.0
+        let launchDuration: TimeInterval = 0.9
+
+        let riseMove = SCNAction.moveBy(x: 0, y: riseHeight, z: 0, duration: launchDuration)
         riseMove.timingMode = .easeOut
 
         let riseSpin = SCNAction.rotateTo(
-            x: finalAngle * 0.75, y: 0, z: 0,
-            duration: 1.2,
+            x: finalAngle * 0.70, y: 0, z: 0,
+            duration: launchDuration,
             usesShortestUnitArc: false
         )
         riseSpin.timingMode = .easeOut
 
-        // ---- Phase 2: Hover (1.2 → 1.8s) ----
-        // Coin floats at apex with micro-bounce, spin decelerates.
-        let hoverBounce = SCNAction.sequence([
-            SCNAction.moveBy(x: 0, y: -0.8, z: 0, duration: 0.15),
-            SCNAction.moveBy(x: 0, y:  1.2, z: 0, duration: 0.15),
-            SCNAction.moveBy(x: 0, y: -0.4, z: 0, duration: 0.30)
-        ])
+        // ---- Phase 2: Apex float (0.9 → 1.3s) ----
+        // Brief near-weightless float at top, spin continues but slowing.
+        let apexDuration: TimeInterval = 0.4
 
-        let hoverSpin = SCNAction.rotateTo(
-            x: finalAngle * 0.90, y: 0, z: 0,
-            duration: 0.6,
+        let apexFloat = SCNAction.moveBy(x: 0, y: -0.2, z: 0, duration: apexDuration)
+        apexFloat.timingMode = .easeInEaseOut
+
+        let apexSpin = SCNAction.rotateTo(
+            x: finalAngle * 0.85, y: 0, z: 0,
+            duration: apexDuration,
             usesShortestUnitArc: false
         )
+        apexSpin.timingMode = .easeInEaseOut
 
-        // ---- Phase 3: Land (1.8 → 2.5s) ----
-        // Coin drops back to origin with spring bounce.
-        let landDrop = SCNAction.moveBy(x: 0, y: -(riseHeight - 0.4), z: 0, duration: 0.55)
-        landDrop.timingMode = .easeIn
+        // ---- Phase 3: Fall (1.3 → 2.0s) ----
+        // Gravity takes over — accelerating downward with easeIn.
+        let fallDuration: TimeInterval = 0.7
 
-        let landSpin = SCNAction.rotateTo(
+        let fallMove = SCNAction.moveBy(x: 0, y: -(riseHeight - 0.8), z: 0, duration: fallDuration)
+        fallMove.timingMode = .easeIn
+
+        let fallSpin = SCNAction.rotateTo(
             x: finalAngle, y: 0, z: 0,
-            duration: 0.7,
+            duration: fallDuration + 0.35,  // spin finishes just after impact
             usesShortestUnitArc: false
         )
-        landSpin.timingMode = .easeIn
+        fallSpin.timingMode = .easeIn
 
-        // Spring settle (overshoot → bounce → settle)
-        let settle = SCNAction.sequence([
-            SCNAction.moveBy(x: 0, y: 1.0, z: 0, duration: 0.08),
-            SCNAction.moveBy(x: 0, y: -0.6, z: 0, duration: 0.07),
-            SCNAction.moveBy(x: 0, y: 0.2, z: 0, duration: 0.05)
+        // ---- Phase 4: Bounce settle (2.0 → 3.0s) ----
+        // Realistic damped bounce chain:
+        //   Impact → up 2.0 (fast) → down (gravity) → Impact →
+        //   up 0.8 → down → Impact → up 0.25 → down → settle
+        let bounce1 = SCNAction.sequence([
+            SCNAction.moveBy(x: 0, y: 2.0, z: 0, duration: 0.13),
+            SCNAction.moveBy(x: 0, y: -2.0, z: 0, duration: 0.18)
         ])
+        bounce1.timingMode = .easeInEaseOut
+
+        let bounce2 = SCNAction.sequence([
+            SCNAction.moveBy(x: 0, y: 0.8, z: 0, duration: 0.10),
+            SCNAction.moveBy(x: 0, y: -0.8, z: 0, duration: 0.14)
+        ])
+
+        let bounce3 = SCNAction.sequence([
+            SCNAction.moveBy(x: 0, y: 0.25, z: 0, duration: 0.07),
+            SCNAction.moveBy(x: 0, y: -0.25, z: 0, duration: 0.10)
+        ])
+
+        let settle = SCNAction.moveBy(x: 0, y: 0, z: 0, duration: 0.05)
 
         // ---- Particle triggers at phase boundaries ----
         let fireTrail = SCNAction.run { _ in particleManager.startTrail() }
@@ -78,19 +100,27 @@ extension SCNNode {
 
         // ---- Compose full sequence ----
         let fullSequence = SCNAction.sequence([
+            // Phase 1: Launch
             fireTrail,
             SCNAction.group([riseMove, riseSpin]),
+            // Phase 2: Apex
             switchToHover,
-            SCNAction.group([hoverBounce, hoverSpin]),
+            SCNAction.group([apexFloat, apexSpin]),
+            // Phase 3: Fall
+            SCNAction.group([fallMove, fallSpin]),
+            // Phase 4: Impact + bounce
             fireBurst,
-            SCNAction.group([landDrop, landSpin]),
+            bounce1,
+            bounce2,
+            bounce3,
             settle,
             SCNAction.run { _ in completion() }
         ])
 
-        // Reset position before animating
+        // Reset position and orientation before animating.
+        // π/2 is the rest orientation — face A pointing at camera.
         self.position = SCNVector3(0, 0, 0)
-        self.eulerAngles = SCNVector3(0, 0, 0)
+        self.eulerAngles = SCNVector3(Float(restAngle), 0, 0)
         self.runAction(fullSequence)
     }
 }

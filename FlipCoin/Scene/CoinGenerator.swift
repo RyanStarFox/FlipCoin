@@ -2,9 +2,9 @@ import SceneKit
 
 struct CoinGenerator {
 
-    static let coinRadius: CGFloat = 1.0
-    static let coinHeight: CGFloat = 0.06
-    static let coinSegments: Int = 64
+    static let coinRadius: CGFloat = 2.0
+    static let coinHeight: CGFloat = 0.20
+    static let coinSegments: Int = 96
 
     static func generate(skin: CoinSkin) -> SCNNode {
         let coinNode = SCNNode()
@@ -14,9 +14,14 @@ struct CoinGenerator {
         let cylinder = SCNCylinder(radius: coinRadius, height: coinHeight)
         cylinder.radialSegmentCount = coinSegments
 
+        // Rotate so the flat face points toward the camera (+Z).
+        // SCNCylinder's top face is at +Y by default; rotating π/2 around X
+        // makes the top face point toward +Z (the camera axis).
+        coinNode.eulerAngles = SCNVector3(Float.pi / 2, 0, 0)
+
         // Texture sizes
         let faceSize = CGSize(width: 512, height: 512)
-        let sideSize = CGSize(width: 512, height: 32)
+        let sideSize = CGSize(width: 512, height: 64)
 
         let faceATex = SkinTextureRenderer.renderFace(skin.faceAText, size: faceSize)
         let faceBTex = SkinTextureRenderer.renderFace(skin.faceBText, size: faceSize)

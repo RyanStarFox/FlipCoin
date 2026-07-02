@@ -29,11 +29,13 @@ class CoinScene {
     private func setupCamera() {
         let cameraNode = SCNNode()
         cameraNode.camera = SCNCamera()
-        cameraNode.camera?.fieldOfView = 60
+        cameraNode.camera?.fieldOfView = 40     // narrower = more "portrait" feel
         cameraNode.camera?.zNear = 0.1
         cameraNode.camera?.zFar = 100
-        cameraNode.position = SCNVector3(0, 1.5, 8)
-        cameraNode.look(at: SCNVector3(0, 0, 0))
+        // Camera sits slightly above and in front, looking slightly down
+        // so you see the coin face clearly with some depth perspective.
+        cameraNode.position = SCNVector3(0, 0.8, 7)
+        cameraNode.look(at: SCNVector3(0, -0.4, 0))
         cameraNode.name = "camera"
         scene.rootNode.addChildNode(cameraNode)
     }

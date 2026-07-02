@@ -73,8 +73,8 @@ class ParticleManager {
         ps.fresnelExponent = 4
         ps.particleImage = makeSparkImage(size: 8, color: .silver)
 
-        // Emitter shape: ring around coin edge
-        ps.emitterShape = SCNTorus(ringRadius: 1.0, pipeRadius: 0.03)
+        // Emitter shape: ring around coin edge (matches coin radius 2.0)
+        ps.emitterShape = SCNTorus(ringRadius: 2.0, pipeRadius: 0.06)
 
         return ps
     }
@@ -103,7 +103,7 @@ class ParticleManager {
         ps.particleImage = makeSparkImage(size: 6, color: .silver)
 
         // Spherical emitter — particles surround the coin
-        ps.emitterShape = SCNSphere(radius: 1.1)
+        ps.emitterShape = SCNSphere(radius: 2.2)
 
         return ps
     }
@@ -133,7 +133,7 @@ class ParticleManager {
         ps.fresnelExponent = 3
         ps.particleImage = makeSparkImage(size: 10, color: .silver)
 
-        ps.emitterShape = SCNTorus(ringRadius: 0.8, pipeRadius: 0.1)
+        ps.emitterShape = SCNTorus(ringRadius: 1.6, pipeRadius: 0.15)
 
         return ps
     }
