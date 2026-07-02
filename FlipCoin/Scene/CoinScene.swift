@@ -27,13 +27,13 @@ class CoinScene {
     private func setupCamera() {
         let cameraNode = SCNNode()
         cameraNode.camera = SCNCamera()
-        cameraNode.camera?.fieldOfView = 45
+        cameraNode.camera?.fieldOfView = 42
         cameraNode.camera?.zNear = 0.1
         cameraNode.camera?.zFar = 100
-        // ~34° downward tilt — like glancing at a coin on the table in front of you.
-        // Not overhead, not eye-level. A comfortable 3/4 desk perspective.
-        cameraNode.position = SCNVector3(0, 3.0, 6.5)
-        cameraNode.look(at: SCNVector3(0, -0.5, 0))
+        // ~45° downward — looking at a flat coin on the table from your seat.
+        // Height ≈ forward distance gives a clean 3/4 perspective.
+        cameraNode.position = SCNVector3(0, 5.5, 5.5)
+        cameraNode.look(at: SCNVector3(0, 0.2, 0))
         cameraNode.name = "camera"
         scene.rootNode.addChildNode(cameraNode)
     }
@@ -79,14 +79,16 @@ class CoinScene {
 
         let mat = SCNMaterial()
         mat.lightingModel = .physicallyBased
-        // Light desk surface — white-ish with a hint of warmth
-        mat.diffuse.contents = PlatformColor(white: 0.84, alpha: 1.0)
+        // Pure white desk surface
+        mat.diffuse.contents = PlatformColor(white: 1.0, alpha: 1.0)
         mat.metalness.contents = 0.15
         mat.roughness.contents = 0.35
         floor.materials = [mat]
 
         let floorNode = SCNNode(geometry: floor)
-        floorNode.position = SCNVector3(0, -2.5, 0)
+        // Floor just below coin bottom — coin sits ON the visible surface.
+        // Coin center is at y=0, coin bottom at y=-0.065. Floor at y=-0.07.
+        floorNode.position = SCNVector3(0, -0.07, 0)
         floorNode.name = "floor"
         scene.rootNode.addChildNode(floorNode)
     }

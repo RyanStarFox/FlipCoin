@@ -37,7 +37,9 @@ extension SCNNode {
         }
 
         // ---- Spin ----
-        let restAngle: CGFloat = .pi / 2         // face A points at camera
+        // Coin is flat on the table: Face A (top) at eulerAngles.x = 0.
+        // After totalSpins rotations, land with either Face A (0) or Face B (π) up.
+        let restAngle: CGFloat = 0
         let totalSpins: CGFloat = 8.0
         let baseAngle: CGFloat = (result == .a) ? 0 : .pi
         let finalAngle = restAngle + totalSpins * 2 * .pi + baseAngle
